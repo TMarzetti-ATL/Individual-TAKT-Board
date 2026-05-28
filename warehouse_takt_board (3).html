@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warehouse TAKT Board — T. Marzetti Atlanta</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#171921;--bg3:#1e2130;--bg4:#252840;
+  --border:#2a2d3e;--border2:#363a52;
+  --text:#e8eaf0;--text2:#9499b0;--text3:#5c6080;
+  --blue:#4f8ef7;--blue-dim:#1a2d5a;
+  --green:#3ecf8e;--green-dim:#0e3325;--green-text:#3ecf8e;
+  --amber:#f5a623;--amber-dim:#3d2a0a;--amber-text:#f5a623;
+  --red:#f26b6b;--red-dim:#3d1212;--red-text:#f26b6b;
+  --purple:#9b8cf7;--purple-dim:#1e1a42;
+  --teal:#2dd4c4;--teal-dim:#0d2e2b;
+  --radius:8px;--radius-lg:12px;
+  font-family:'DM Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--text);min-height:100vh;font-size:13px}
+a{color:var(--blue)}
+
+/* TOP NAV */
+.nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.25rem;display:flex;align-items:center;gap:12px;height:52px;flex-wrap:wrap}
+.nav-logo{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.3px}
+.nav-logo span{color:var(--blue)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* CONTROLS */
+.controls{background:var(--bg2);border-bottom:1px solid var(--border);padding:.6rem 1.25rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+select,input[type=date]{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:5px 10px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer}
+select:focus,input[type=date]:focus{outline:none;border-color:var(--blue)}
+.shift-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
+.s1{background:var(--blue-dim);color:var(--blue)}
+.s2{background:var(--purple-dim);color:var(--purple)}
+.sw{background:var(--teal-dim);color:var(--teal)}
+.btn{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.btn:hover{background:var(--bg4);color:var(--text);border-color:var(--blue)}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-primary:hover{background:#3a7de8;border-color:#3a7de8;color:#fff}
+
+/* UPLOAD BAR */
+.upload-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:.5rem 1.25rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.upload-bar label{font-size:12px;color:var(--text2)}
+.upload-bar input[type=file]{font-size:11px;color:var(--text2)}
+.upload-hint{font-size:11px;color:var(--text3)}
+.upload-status{font-size:11px;padding:3px 10px;border-radius:20px;display:none}
+
+/* TABS */
+.tab-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.25rem;display:flex;gap:2px;overflow-x:auto}
+.tab{padding:10px 14px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* MAIN */
+.main{padding:1.25rem}
+
+/* METRIC CARDS */
+.metric-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1rem}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px}
+.metric .ml{font-size:11px;color:var(--text3);margin-bottom:3px}
+.metric .mv{font-size:18px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace}
+
+/* OP GRID */
+.op-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px}
+.op-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px}
+.op-card.ot{border-left:3px solid var(--amber)}
+.op-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;justify-content:space-between}
+.op-info{display:flex;align-items:center;gap:8px}
+.avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;font-family:'DM Mono',monospace}
+.av-1st{background:var(--blue-dim);color:var(--blue)}
+.av-2nd{background:var(--purple-dim);color:var(--purple)}
+.av-wkd{background:var(--teal-dim);color:var(--teal)}
+.av-ot{background:var(--amber-dim);color:var(--amber)}
+.av-lead{background:#1e1a42;color:#9b8cf7}
+.av-inv{background:var(--teal-dim);color:var(--teal)}
+.av-sup{background:#1a1a1a;color:#888}
+.av-coord{background:#2a1a10;color:#d4845a}
+.op-name{font-size:13px;font-weight:600;color:var(--text)}
+.op-sub{font-size:11px;color:var(--text3);margin-top:1px}
+
+/* HOUR TABLE */
+.hour-wrap{overflow-x:auto}
+.hour-table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:280px}
+.hour-table th{font-size:9px;color:var(--text3);font-weight:500;padding:3px 2px;border:1px solid var(--border);text-align:center;background:var(--bg3)}
+.hour-table td{padding:2px;border:1px solid var(--border);text-align:center;font-size:11px}
+.hour-table td.rl{text-align:left;padding-left:5px;color:var(--text3);font-size:10px;width:50px;background:var(--bg3)}
+.hour-table td input{width:100%;border:none;background:transparent;text-align:center;font-size:11px;color:var(--text);outline:none;padding:2px 0;font-family:'DM Mono',monospace}
+.hour-table td input::placeholder{color:var(--text3)}
+
+/* KPI COLORS */
+.kg{background:var(--green-dim);color:var(--green);font-weight:600;border-radius:3px}
+.ky{background:var(--amber-dim);color:var(--amber);font-weight:600;border-radius:3px}
+.kr{background:var(--red-dim);color:var(--red);font-weight:600;border-radius:3px}
+.kn{color:var(--text3)}
+
+/* BADGES */
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;display:inline-block}
+.badge-g{background:var(--green-dim);color:var(--green)}
+.badge-y{background:var(--amber-dim);color:var(--amber)}
+.badge-r{background:var(--red-dim);color:var(--red)}
+.badge-n{background:var(--bg3);color:var(--text3)}
+.badge-ot{background:var(--amber-dim);color:var(--amber)}
+.badge-lead{background:var(--purple-dim);color:var(--purple)}
+
+/* SOLO OVERLAY */
+.solo-overlay{display:none;background:var(--bg2);border:2px solid var(--blue);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1rem}
+.solo-overlay.show{display:block}
+.solo-close{float:right;cursor:pointer;color:var(--text3);font-size:18px;line-height:1}
+.solo-close:hover{color:var(--text)}
+
+/* TABLES */
+.data-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow-x:auto}
+.data-wrap table{width:100%;border-collapse:collapse;min-width:540px}
+.data-wrap th{background:var(--bg3);font-size:11px;font-weight:500;padding:7px 10px;border:1px solid var(--border);color:var(--text2);white-space:nowrap}
+.data-wrap td{padding:6px 10px;border:1px solid var(--border);font-size:12px;color:var(--text)}
+
+/* LOG ROWS */
+.log-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:5px}
+.log-row select,.log-row input{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:4px 7px;font-size:11px;color:var(--text);font-family:'DM Sans',sans-serif}
+.log-row button{background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:4px 10px;font-size:11px;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif}
+.log-row button:hover{background:var(--blue);border-color:var(--blue);color:#fff}
+.log-entry{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);font-size:11px;color:var(--text2)}
+.log-remove{cursor:pointer;color:var(--red);font-size:10px;margin-left:8px}
+.log-remove:hover{text-decoration:underline}
+
+/* ROLE SECTION */
+.role-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:10px}
+.role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:8px}
+.role-card{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px}
+
+/* LEGEND */
+.legend{display:flex;gap:14px;margin-top:10px;font-size:11px;align-items:center;flex-wrap:wrap;color:var(--text3)}
+.ld{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:3px;vertical-align:middle}
+
+/* TV OVERLAY */
+#tvOverlay{display:none;position:fixed;inset:0;background:#090b10;z-index:1000;padding:2rem;overflow-y:auto}
+#tvOverlay.show{display:block}
+.tv-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1e2230;padding-bottom:12px;margin-bottom:1.5rem}
+.tv-title{font-size:24px;font-weight:600;color:#fff}
+.tv-meta{font-size:13px;color:#444}
+.tv-close{cursor:pointer;color:#444;font-size:24px}
+.tv-close:hover{color:#fff}
+.tv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.tv-card{background:#111318;border:1px solid #1e2230;border-radius:10px;padding:14px}
+.tv-card.ot-card{border-left:3px solid #f5a623}
+.tv-name{font-size:13px;font-weight:600;color:#ccc;margin-bottom:2px}
+.tv-sub{font-size:10px;color:#444;margin-bottom:8px}
+.tv-big{font-size:36px;font-weight:600;font-family:'DM Mono',monospace;line-height:1}
+.tv-exp{font-size:13px;color:#333}
+.tv-pct{font-size:14px;font-weight:600;padding:3px 10px;border-radius:20px;margin-top:6px;display:inline-block}
+.tv-g{color:#3ecf8e}.tv-y{color:#f5a623}.tv-r{color:#f26b6b}
+.tv-pct-g{background:#0e3325;color:#3ecf8e}
+.tv-pct-y{background:#3d2a0a;color:#f5a623}
+.tv-pct-r{background:#3d1212;color:#f26b6b}
+.tv-pct-n{background:#1a1a1a;color:#555}
+.tv-shift-summary{display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.tv-sum-card{background:#111318;border:1px solid #1e2230;border-radius:8px;padding:10px 18px}
+.tv-sum-label{font-size:11px;color:#444;margin-bottom:3px}
+.tv-sum-val{font-size:22px;font-weight:600;font-family:'DM Mono',monospace;color:#ccc}
+
+/* SECTION LABELS */
+.section-lbl{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin:14px 0 8px}
+
+/* SUPPORT CARDS */
+.support-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;margin-bottom:10px}
+.inv-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+.inv-table th{background:var(--bg3);color:var(--text3);font-weight:500;padding:4px 7px;border:1px solid var(--border);text-align:left}
+.inv-table td{padding:4px 7px;border:1px solid var(--border);color:var(--text2)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-logo">T. Marzetti <span>TAKT</span></div>
+  <div style="font-size:11px;color:var(--text3)">Atlanta DC — Individual Performance Board</div>
+  <div class="nav-right" style="display:flex;align-items:center;gap:10px">
+    <span id="saveIndicator" style="font-size:11px;color:var(--green);opacity:0;transition:opacity .4s">✓ Saved</span>
+    <span id="lastSaved" style="font-size:11px;color:var(--text3)"></span>
+    <button class="btn" onclick="clearAllData()" style="font-size:11px;color:var(--red);border-color:var(--red-dim)">&#x1F5D1; Clear data</button>
+    <button class="btn btn-primary" onclick="openTV()">&#9654; TV Mode</button>
+  </div>
+</div>
+
+<div class="controls">
+  <select id="shiftSel" onchange="changeShift()">
+    <option value="1st">1st shift — 06:00–16:00 (Mon–Thu)</option>
+    <option value="2nd">2nd shift — 16:00–02:00 (Mon–Thu)</option>
+    <option value="wkd">Weekend — 06:00–18:00 (Fri–Sun)</option>
+  </select>
+  <input type="date" id="datePicker" onchange="render()">
+  <span class="shift-badge s1" id="shiftBadge">1st shift</span>
+</div>
+
+<div class="upload-bar">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--text3)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+  <label style="font-weight:600;color:var(--text)">SAP import:</label>
+  <select id="csvHourSel" style="font-size:11px;padding:3px 8px"></select>
+  <button class="btn" onclick="openPasteModal()" style="font-size:11px;padding:4px 12px;background:var(--blue);border-color:var(--blue);color:#fff">&#x2398; Paste from Excel</button>
+  <span style="font-size:11px;color:var(--text3)">or</span>
+  <input type="file" accept=".xlsx,.xls,.csv" id="csvUpload" onchange="handleUpload(event)" style="font-size:11px">
+  <span id="uploadStatus" class="upload-status"></span>
+</div>
+
+<!-- NOTE MODAL -->
+<div id="noteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.5rem;width:90%;max-width:480px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <div style="font-size:15px;font-weight:600;color:var(--text)" id="noteModalTitle">Hour note</div>
+      <span onclick="closeNoteModal()" style="cursor:pointer;color:var(--text3);font-size:20px;line-height:1">✕</span>
+    </div>
+    <div id="noteBreakInfo" style="font-size:11px;color:var(--amber);margin-bottom:8px;display:none"></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Quick reasons:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px" id="noteChips"></div>
+    <textarea id="noteText" placeholder="Add a custom note or details..." style="width:100%;height:90px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:8px;resize:vertical;outline:none;margin-bottom:10px"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="clearNote()">Clear note</button>
+      <button class="btn" onclick="closeNoteModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNote()">Save note</button>
+    </div>
+  </div>
+</div>
+<div id="pasteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.5rem;width:90%;max-width:640px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <div style="font-size:15px;font-weight:600;color:var(--text)">Paste SAP data from Excel</div>
+      <span onclick="closePasteModal()" style="cursor:pointer;color:var(--text3);font-size:20px;line-height:1">✕</span>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.7">
+      <strong style="color:var(--text)">How to paste:</strong><br>
+      1. Open your SAP Pallets Report in Excel<br>
+      2. Click the top-left cell of the data (the header row with "Operator")<br>
+      3. Press <kbd style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;font-family:'DM Mono',monospace">Ctrl+Shift+End</kbd> to select all data<br>
+      4. Press <kbd style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;font-family:'DM Mono',monospace">Ctrl+C</kbd> to copy<br>
+      5. Click in the box below and press <kbd style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;font-family:'DM Mono',monospace">Ctrl+V</kbd> to paste
+    </div>
+    <textarea id="pasteArea" placeholder="Paste your Excel data here (Ctrl+V)..." style="width:100%;height:200px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:10px;resize:vertical;outline:none"></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
+      <button class="btn" onclick="closePasteModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="processPaste()">&#9654; Import data</button>
+    </div>
+    <div id="pasteStatus" style="margin-top:8px;font-size:12px;display:none"></div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active" id="tab-live" onclick="switchTab('live')">&#9654; Live TAKT</div>
+  <div class="tab" id="tab-daily" onclick="switchTab('daily')">&#9776; Daily Summary</div>
+  <div class="tab" id="tab-weekly" onclick="switchTab('weekly')">&#9744; Weekly Totals</div>
+  <div class="tab" id="tab-downtime" onclick="switchTab('downtime')">&#9651; Downtime Log</div>
+  <div class="tab" id="tab-support" onclick="switchTab('support')">&#9998; Leads &amp; Inventory</div>
+  <div class="tab" id="tab-roster" onclick="switchTab('roster')">&#9786; Roster</div>
+</div>
+
+<div class="main">
+  <div id="soloView" class="solo-overlay"></div>
+  <div id="view-live"></div>
+  <div id="view-daily" style="display:none"></div>
+  <div id="view-weekly" style="display:none"></div>
+  <div id="view-downtime" style="display:none"></div>
+  <div id="view-support" style="display:none"></div>
+  <div id="view-roster" style="display:none"></div>
+  <div class="legend">
+    <span>Key:</span>
+    <span><span class="ld" style="background:#0e3325;border:1px solid #3ecf8e"></span><span>Met ≥95%</span></span>
+    <span><span class="ld" style="background:#3d2a0a;border:1px solid #f5a623"></span><span>Close 75–94%</span></span>
+    <span><span class="ld" style="background:#3d1212;border:1px solid #f26b6b"></span><span>Below &lt;75%</span></span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-left:3px solid #f5a623;margin-right:3px;vertical-align:middle"></span><span>OT from other shift</span></span>
+  </div>
+</div>
+
+<div id="tvOverlay">
+  <div class="tv-header">
+    <div class="tv-title" id="tvTitle">Live TAKT Board</div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div class="tv-meta" id="tvMeta"></div>
+      <div class="tv-close" onclick="closeTV()">✕</div>
+    </div>
+  </div>
+  <div class="tv-shift-summary" id="tvSummary"></div>
+  <div class="tv-grid" id="tvGrid"></div>
+</div>
+
+<script>
+const SHIFTS={
+  "1st":{label:"1st shift",hours:["06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00"],badge:"s1",
+    breaks:{"09:30":{mins:30,label:"Break (30 min)"},"12:30":{mins:30,label:"Lunch (30 min)"}}},
+  "2nd":{label:"2nd shift",hours:["16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00","00:00","01:00"],badge:"s2",
+    breaks:{"18:30":{mins:30,label:"Break (30 min)"},"20:30":{mins:30,label:"Break (30 min)"}}},
+  "wkd":{label:"Weekend",hours:["06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"],badge:"sw",
+    breaks:{"09:30":{mins:30,label:"Break (30 min)"},"12:30":{mins:20,label:"Lunch (20 min)"},"15:30":{mins:30,label:"Break (30 min)"}}}
+};
+// Which production hour each break falls inside (break time → hour it eats into)
+function getBreaksInHour(shift,hour){
+  const sh=SHIFTS[shift];if(!sh||!sh.breaks)return[];
+  const [hh]=hour.split(":").map(Number);
+  return Object.entries(sh.breaks).filter(([bt])=>{
+    const [bh,bm]=bt.split(":").map(Number);
+    return bh===hh||(bm>0&&bh===hh);
+  }).map(([,v])=>v);
+}
+function hourBreakMins(shift,hour){
+  return getBreaksInHour(shift,hour).reduce((a,b)=>a+b.mins,0);
+}
+// Adjusted std accounting for break time in that hour (60 min hour - break mins) / 60 * std
+function adjustedStd(shift,op,hour){
+  const std=getOpStd(op);if(std===null)return null;
+  const bm=hourBreakMins(shift,hour);
+  if(!bm)return std;
+  return Math.round(std*((60-bm)/60));
+}
+const NOTE_REASONS=["Completing dumps","1-on-1 meeting","Cleaning","Left early","Arrived late","Equipment issue","Reassigned mid-hour","Break ran over","Training","Supporting another operator","Personal","Other"];
+let hourNotes={};
+let sapCumulative={}; // stores raw SAP running totals keyed by shift||date||name
+function sapCumKey(shift,date,name){return shift+"||"+date+"||"+name+"||sapcum";}
+function noteKey(shift,date,name,hour){return shift+"||"+date+"||"+name+"||"+hour+"||note";}
+function getNote(shift,date,name,hour){return hourNotes[noteKey(shift,date,name,hour)]||"";}
+function setNote(shift,date,name,hour,val){
+  hourNotes[noteKey(shift,date,name,hour)]=val;
+  scheduleSave();
+}
+const DT_REASONS=["Equipment down","No freight","Break/lunch","Safety stop","Reassigned","System outage","Waiting on task","Other"];
+const LEAD_TASKS=["Floor coverage","Operator assist","Training","Inventory support","Dock support","Safety walk","Other"];
+const INV_AREAS=["Receiving","Put-away","Pallet storage","Case pick","Outbound","Returns","Full warehouse","Other"];
+// SAP column → function code mapping (exact column names from your report)
+const SAP_COL_MAP={
+  "putaway trips":"PUT",
+  "putaway cases":"PUT",
+  "pallet trips":"FPP",
+  "pallet cases":"FPP",
+  "pick trips":"CP",
+  "pick cases":"CP",
+  "loaded pallets":"LOAD",
+  "loaded cases":"LOAD",
+  "unloaded pallets":"UNL",
+  "unloaded cases":"UNL",
+  "moved trips":"MOV",
+  "moved cases":"MOV",
+  "packing trips":"PACK",
+  "total trips":"TOTAL",
+  "total cases":"TOTALCS"
+};
+// Priority order: which column wins when detecting auto-assignment
+// Key = function code, value = SAP column keyword that signals this function
+const FN_DETECT_PRIORITY=["PUT","FPP","CP","UNL","LOAD","MOV","PACK"];
+// Pallet thresholds for load/unload (1 trailer = 25-28 pallets)
+const TRAILER_PALLETS=26; // midpoint of 25-28
+const FUNCTIONS={
+  "PUT":{label:"Putaway",std:21},
+  "FPP":{label:"Pallet pick",std:20},
+  "CP":{label:"Case pick",std:null},
+  "UNL":{label:"Unload",std:19},
+  "LOAD":{label:"Load",std:19},
+  "L/CP":{label:"Load / Case pick",std:30},
+  "RUN":{label:"Runner",std:null},
+  "TRN":{label:"Training",std:null},
+};
+let assignments={};
+function getAssignment(shift,name){return assignments[shift+"||"+name]||null;}
+function getOpFn(op){const a=getAssignment(curShift,op.name);return a?a.fn:op.fn;}
+function getOpStd(op){const a=getAssignment(curShift,op.name);return a?a.std:op.std;}
+function reassign(shift,name,fn){
+  const std=FUNCTIONS[fn]?FUNCTIONS[fn].std:null;
+  // manual:true means auto-detect from SAP will NOT override this
+  assignments[shift+"||"+name]={fn,std,manual:true};
+  render();
+  scheduleSave();
+}
+function clearManualLock(shift,name){
+  const a=assignments[shift+"||"+name];
+  if(a)a.manual=false;
+  scheduleSave();
+}
+
+const ORG={
+  "1st":{
+    supervisors:[{name:"Nate Bodkin",id:"LC11571"}],
+    coordinators:[{name:"Niandi Rash",id:"LC11189"},{name:"Nora Martinez",id:"LC12704"}],
+    leads:[{name:"Yazmine Leeper",sap:"YAZMINE LEEPER",id:"LC11321"},{name:"Gary Watkins",sap:"GARY WATKINS",id:"LC12692"}],
+    inv:[{name:"Chandrell Walthall",sap:"CHANDRELL WALTHALL",id:"LC11278"}],
+    ops:[
+      {name:"Albert Brown Jr",sap:"ALBERT BROWN JR",id:"LC11826",fn:"PUT",std:21},
+      {name:"Brian Willingham",sap:"BRIAN WILLINGHAM",id:"LC11270",fn:"FPP",std:20},
+      {name:"Keith Porter",sap:"KEITH PORTER",id:"LC12181",fn:"PUT",std:21},
+      {name:"Desiree Seay",sap:"DESIREE SEAY",id:"LC11669",fn:"FPP",std:20},
+      {name:"Tyrone M. Jones",sap:"TYRONE M. JONES",id:"LC12400",fn:"FPP",std:20},
+      {name:"Martavious Jackson",sap:"MARTAVIOUS JACKSON",id:"LC11220",fn:"PUT",std:21},
+      {name:"Michael L. Sykes",sap:"MICHAEL L. SYKES",id:"LC11359",fn:"FPP",std:20},
+      {name:"Reginald J. Broadnax",sap:"REGINALD J. BROADNAX",id:"LC11649",fn:"UNL",std:19},
+      {name:"Dennis Stewart",sap:"DENNIS STEWART",id:"LC11374",fn:"PUT",std:21},
+      {name:"Takiesha McBride",sap:"TAKIESHA MCBRIDE",id:"LC11406",fn:"FPP",std:20},
+      {name:"Xavier Lawson",sap:"XAVIER LAWSON",id:"LC12222",fn:"L/CP",std:30},
+      {name:"Marcilla L. Strong",sap:"MARCILLA L. STRONG",id:"LC11873",fn:"UNL",std:19},
+    ]
+  },
+  "2nd":{
+    supervisors:[{name:'Patrisha Shelborne "P.D."',id:""}],
+    coordinators:[{name:"Sade Akinyemi",id:"LC11672"},{name:"Detoine Sanders",id:"LC11917"}],
+    leads:[{name:"Alonzo Roberts",sap:"ALONZO ROBERTS",id:"LC11269"},{name:"Sherrita Ferrell",sap:"SHERRITA FERRELL",id:"LC11744"}],
+    inv:[{name:"Lamarcus A. Smith",sap:"LAMARCUS A. SMITH",id:"LC12850"}],
+    ops:[
+      {name:"Andre Faulks",sap:"ANDRE FAULKS",id:"LC11646",fn:"FPP",std:20},
+      {name:"Edward Huff",sap:"EDWARD HUFF",id:"LC11943",fn:"PUT",std:21},
+      {name:"Latonya Hill",sap:"LATONYA HILL",id:"LC11369",fn:"UNL",std:19},
+      {name:"Caylie Costley",sap:"CAYLIE COSTLEY",id:"LC11840",fn:"FPP",std:20},
+      {name:"Jason Pinillos",sap:"JASON PINILLOS",id:"LC12323",fn:"PUT",std:21},
+      {name:"Tracy Cohen",sap:"TRACY COHEN",id:"LC12689",fn:"L/CP",std:30},
+      {name:"MJ Joiner",sap:"MJ JOINER",id:"LC12694",fn:"FPP",std:20},
+      {name:"Kevin Gripper",sap:"KEVIN GRIPPER",id:"LC12686",fn:"PUT",std:21},
+      {name:"Nay Stokes",sap:"NAY STOKES",id:"LC12845",fn:"UNL",std:19},
+      {name:"Mike King",sap:"MIKE KING",id:"LC12579",fn:"PUT",std:21},
+      {name:"Randolph L. Hicks",sap:"RANDOLPH L. HICKS",id:"LC11898",fn:"FPP",std:20},
+    ]
+  },
+  "wkd":{
+    supervisors:[],
+    coordinators:[{name:"Tarisai Hamlin",id:"LC12441"}],
+    leads:[{name:"Diedre Robertson",sap:"DIEDRE ROBERTSON",id:"LC11900"},{name:"Alonzo Roberts",sap:"ALONZO ROBERTS",id:"LC11269",ot:true}],
+    inv:[{name:"Samuel Johnson",sap:"SAMUEL JOHNSON",id:"LC12856"}],
+    ops:[
+      {name:"Latrevia S. Harris",sap:"LATREVIA S. HARRIS",id:"LC11376",fn:"FPP",std:20},
+      {name:"Randolph L. Hicks",sap:"RANDOLPH L. HICKS",id:"LC11898",fn:"FPP",std:20},
+      {name:"Nate Snyder",sap:"NATE SNYDER",id:"LC11920",fn:"UNL",std:19},
+      {name:"Eli Talbert",sap:"ELI TALBERT",id:"LC12297",fn:"FPP",std:20},
+      {name:"Mike King",sap:"MIKE KING",id:"LC12579",fn:"PUT",std:21},
+      {name:"Danielle Askew",sap:"DANIELLE ASKEW",id:"LC12683",fn:"L/CP",std:30},
+      {name:"Robert Griffin",sap:"ROBERT GRIFFIN",id:"LC12685",fn:"FPP",std:20},
+      {name:"Jalen Blake",sap:"JALEN BLAKE",id:"LC12254",fn:"PUT",std:21},
+      {name:"Latonya Hill",sap:"LATONYA HILL",id:"LC11369",fn:"UNL",std:19,ot:true},
+      {name:"Michael L. Sykes",sap:"MICHAEL L. SYKES",id:"LC11359",fn:"FPP",std:20,ot:true},
+      {name:"Tyrone M. Jones",sap:"TYRONE M. JONES",id:"LC12400",fn:"FPP",std:20,ot:true},
+      {name:"Xavier Lawson",sap:"XAVIER LAWSON",id:"LC12222",fn:"L/CP",std:30,ot:true},
+    ]
+  }
+};
+
+let curShift="1st",curTab="live",soloOp=null;
+let actuals={},downtimes=[],invLogs=[],leadLogs=[];
+
+function k(shift,date,name,hour){return shift+"||"+date+"||"+name+"||"+hour;}
+function getDate(){return document.getElementById("datePicker").value;}
+function initDate(){document.getElementById("datePicker").value=new Date().toISOString().split("T")[0];}
+function ini(n){const p=n.trim().replace(/['"]/g,"").split(" ");return(p[0][0]+(p[p.length-1][0])).toUpperCase();}
+function shiftAv(s){return(s||curShift)==="1st"?"av-1st":(s||curShift)==="2nd"?"av-2nd":"av-wkd";}
+function klass(a,s){if(a===null||a===undefined||s===null)return"kn";const p=a/s;return p>=0.95?"kg":p>=0.75?"ky":"kr";}
+function badgeCls(p){return p===null?"badge-n":p>=95?"badge-g":p>=75?"badge-y":"badge-r";}
+
+function populateHourSel(){
+  const sel=document.getElementById("csvHourSel");sel.innerHTML="";
+  SHIFTS[curShift].hours.forEach(h=>{const o=document.createElement("option");o.value=h;o.textContent=h;sel.appendChild(o);});
+  const cur=new Date().getHours().toString().padStart(2,"0")+":00";
+  const match=SHIFTS[curShift].hours.find(h=>h===cur);
+  if(match)sel.value=match;
+}
+
+function changeShift(){
+  curShift=document.getElementById("shiftSel").value;
+  const sh=SHIFTS[curShift];
+  const b=document.getElementById("shiftBadge");b.textContent=sh.label;b.className="shift-badge "+sh.badge;
+  soloOp=null;document.getElementById("soloView").className="solo-overlay";
+  populateHourSel();render();
+}
+
+function switchTab(t){
+  curTab=t;
+  ["live","daily","weekly","downtime","support","roster"].forEach(x=>{
+    document.getElementById("tab-"+x).className="tab"+(x===t?" active":"");
+    document.getElementById("view-"+x).style.display=x===t?"block":"none";
+  });
+  render();
+}
+
+function openSolo(name){
+  soloOp=name;renderSolo();
+  document.getElementById("soloView").className="solo-overlay show";
+  document.getElementById("soloView").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function closeSolo(){soloOp=null;document.getElementById("soloView").className="solo-overlay";renderLive();}
+
+function renderSolo(){
+  const sh=SHIFTS[curShift];const date=getDate();
+  const op=ORG[curShift].ops.find(o=>o.name===soloOp);if(!op)return;
+  const fn=getOpFn(op);const std=getOpStd(op);
+  const isReassigned=!!getAssignment(curShift,op.name);
+  let cumA=0;let opTotal=0;
+  const filledHrs=sh.hours.filter(h=>actuals[k(curShift,date,op.name,h)]!=null);
+  sh.hours.forEach(h=>{const v=actuals[k(curShift,date,op.name,h)];if(v!=null)opTotal+=parseInt(v);});
+  const pct=filledHrs.length>0&&std?Math.round(opTotal/(std*filledHrs.length)*100):null;
+  const weekTotal=getWeekTotal(op.name);
+  const shiftArr=ORG[curShift].ops.map(o=>{let t=0;sh.hours.forEach(h=>{const v=actuals[k(curShift,date,o.name,h)];if(v!=null)t+=parseInt(v);});return t;});
+  const shiftAvg=Math.round(shiftArr.filter(x=>x>0).reduce((a,b)=>a+b,0)/(shiftArr.filter(x=>x>0).length||1));
+  const opDT=downtimes.filter(d=>d.op===op.name&&d.date===date&&d.shift===curShift);
+  const totalDT=opDT.reduce((a,b)=>a+b.mins,0);
+  let hourRows="";
+  sh.hours.forEach((h,i)=>{
+    const v=actuals[k(curShift,date,op.name,h)];
+    if(v!=null)cumA+=parseInt(v);
+    const adjStd=adjustedStd(curShift,op,h);
+    const bks=getBreaksInHour(curShift,h);
+    const diff=v!=null&&adjStd!==null?cumA-adjStd*(i+1):null;
+    const cl=klass(v,adjStd);const cumCl=diff===null?"kn":diff>=0?"kg":adjStd&&Math.abs(diff)<=adjStd*0.25?"ky":"kr";
+    const note=getNote(curShift,date,op.name,h);
+    hourRows+=`<tr>
+      <td style="font-weight:600;color:var(--text);padding:5px 7px;border:1px solid var(--border)">${h}${bks.length?` <span style="font-size:9px;color:var(--amber)">☕</span>`:""}</td>
+      <td class="kn" style="padding:5px 7px;border:1px solid var(--border);text-align:center;font-family:'DM Mono',monospace">${adjStd!==null?adjStd:"—"}${bks.length?`<br><span style="font-size:9px;color:var(--amber)">${bks[0].mins}m brk</span>`:""}</td>
+      <td class="${cl}" style="padding:3px;border:1px solid var(--border);text-align:center"><input type="number" min="0" max="999" value="${v!=null?v:""}" placeholder="—" style="width:56px;border:none;background:transparent;text-align:center;font-size:12px;color:inherit;outline:none;font-family:'DM Mono',monospace" onchange="setActual('${curShift}','${date}','${op.name}','${h}',this.value)"></td>
+      <td class="${cumCl}" style="padding:5px 7px;border:1px solid var(--border);text-align:center;font-family:'DM Mono',monospace">${cumA||"—"}</td>
+      <td class="${cumCl}" style="padding:5px 7px;border:1px solid var(--border);text-align:center;font-family:'DM Mono',monospace">${diff!==null?(diff>=0?"+"+diff:diff):"—"}</td>
+      <td style="padding:3px 6px;border:1px solid var(--border);text-align:center">
+        <span onclick="openNoteModal('${curShift}','${date}','${op.name.replace(/'/g,"\\'")}','${h}')"
+          style="font-size:10px;cursor:pointer;color:${note?"var(--blue)":"var(--text3)"};padding:2px 6px;border-radius:10px;${note?"background:var(--blue-dim)":"border:1px solid var(--border2)"}"
+          title="${note||"Add note"}">${note?"✎ "+note.substring(0,18)+(note.length>18?"…":""):"+ note"}</span>
+      </td>
+    </tr>`;
+  });
+  const dtRows=opDT.length?opDT.map(d=>`<div class="log-entry"><span>${d.hour} — ${d.reason}${d.note?" ("+d.note+")":""} · ${d.mins} min</span><span class="log-remove" onclick="removeDT(${downtimes.indexOf(d)})">remove</span></div>`).join(""):`<div style="color:var(--text3);font-size:11px">None logged</div>`;
+  document.getElementById("soloView").innerHTML=`<div>
+    <span class="solo-close" onclick="closeSolo()">✕</span>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <div class="avatar ${shiftAv()}" style="width:44px;height:44px;font-size:14px">${ini(op.name)}</div>
+      <div>
+        <div style="font-size:17px;font-weight:600;color:var(--text)">${op.name}${op.ot?` <span class="badge badge-ot">OT</span>`:""}${isReassigned?` <span style="font-size:10px;padding:2px 7px;border-radius:10px;background:var(--purple-dim);color:var(--purple)">reassigned</span>`:""}</div>
+        <div style="font-size:11px;color:var(--text3)">${op.id} · ${fn} · Standard: ${std!==null?std+"/hr":"no std"}</div>
+      </div>
+      <span class="badge ${badgeCls(pct)}" style="margin-left:auto;font-size:13px;padding:4px 12px">${pct!==null?pct+"%":"No data"}</span>
+    </div>
+    <div class="metric-row" style="margin-bottom:12px">
+      <div class="metric"><div class="ml">Today total</div><div class="mv">${opTotal||"—"}</div></div>
+      <div class="metric"><div class="ml">Shift avg</div><div class="mv">${shiftAvg||"—"}</div></div>
+      <div class="metric"><div class="ml">vs avg</div><div class="mv" style="color:${opTotal&&opTotal>=shiftAvg?"var(--green)":"var(--red)"}">${opTotal&&shiftAvg?(opTotal>=shiftAvg?"+":"")+(opTotal-shiftAvg):"—"}</div></div>
+      <div class="metric"><div class="ml">Week total</div><div class="mv">${weekTotal||"—"}</div></div>
+      <div class="metric"><div class="ml">Downtime</div><div class="mv" style="color:${totalDT>0?"var(--red)":"var(--text)"}">${totalDT} min</div></div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+      <thead><tr style="background:var(--bg3)">${["Hour","Std","Actual","Cumulative","Variance","Notes"].map(h=>`<th style="font-size:11px;color:var(--text3);font-weight:500;padding:5px 7px;border:1px solid var(--border);text-align:${h==="Hour"?"left":"center"}">${h}</th>`).join("")}</tr></thead>
+      <tbody>${hourRows}</tbody>
+    </table>
+    <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:7px">⚠ Downtime</div>
+    <div class="log-row">
+      <select id="solo-dt-hour">${sh.hours.map(h=>`<option>${h}</option>`).join("")}</select>
+      <select id="solo-dt-reason">${DT_REASONS.map(r=>`<option>${r}</option>`).join("")}</select>
+      <input type="number" id="solo-dt-mins" placeholder="mins" min="1" max="60" style="width:56px">
+      <input type="text" id="solo-dt-note" placeholder="note (optional)" style="width:120px">
+      <button onclick="addDT('${op.name}')">Log</button>
+    </div>
+    <div id="solo-dt-list" style="margin-top:7px">${dtRows}</div>
+  </div>`;
+}
+
+function addDT(opName){
+  const h=document.getElementById("solo-dt-hour").value;
+  const r=document.getElementById("solo-dt-reason").value;
+  const m=parseInt(document.getElementById("solo-dt-mins").value)||0;
+  const n=(document.getElementById("solo-dt-note").value||"").trim();
+  if(!m)return;
+  downtimes.push({op:opName,date:getDate(),shift:curShift,hour:h,reason:r,mins:m,note:n});
+  renderSolo();
+}
+function removeDT(idx){downtimes.splice(idx,1);renderSolo();}
+
+function setActual(shift,date,name,hour,val){
+  const n=val===""?null:parseInt(val);
+  actuals[k(shift,date,name,hour)]=isNaN(n)?null:n;
+  if(soloOp===name)renderSolo();
+  else if(curTab==="live")renderLive();
+  if(curTab==="daily")renderDaily();
+}
+
+function getWeekTotal(opName){
+  let total=0;const d=new Date(getDate());const day=d.getDay();const mon=day===0?-6:1-day;
+  for(let i=0;i<7;i++){const dd=new Date(d);dd.setDate(d.getDate()+(mon+i));const ds=dd.toISOString().split("T")[0];
+    Object.keys(SHIFTS).forEach(sh=>{SHIFTS[sh].hours.forEach(h=>{const v=actuals[k(sh,ds,opName,h)];if(v!=null)total+=parseInt(v);});});}
+  return total;
+}
+
+function renderLive(){
+  const sh=SHIFTS[curShift];const date=getDate();const ops=ORG[curShift].ops;
+  let tA=0,tE=0;
+  ops.forEach(op=>{sh.hours.forEach(h=>{const v=actuals[k(curShift,date,op.name,h)];if(v!=null){tA+=parseInt(v);tE+=op.std;}});});
+  const att=tE>0?Math.round(tA/tE*100):null;
+  const attColor=att===null?"var(--text)":att>=95?"var(--green)":att>=75?"var(--amber)":"var(--red)";
+  const meta=`<div class="metric-row">
+    <div class="metric"><div class="ml">Operators</div><div class="mv">${ops.length}</div></div>
+    <div class="metric"><div class="ml">Total actual</div><div class="mv">${tA}</div></div>
+    <div class="metric"><div class="ml">Expected</div><div class="mv">${tE}</div></div>
+    <div class="metric"><div class="ml">Attainment</div><div class="mv" style="color:${attColor}">${att!==null?att+"%":"—"}</div></div>
+  </div>`;
+  const cols=sh.hours.length;
+  let grid=`<div class="op-grid">`;
+  ops.forEach(op=>{
+    let cumA=0;
+    const fn=getOpFn(op);
+    const std=getOpStd(op);
+    const isReassigned=!!getAssignment(curShift,op.name);
+    const ths=sh.hours.map(h=>`<th>${h}</th>`).join("");
+    const stdRow=sh.hours.map(()=>`<td class="kn" style="font-family:'DM Mono',monospace">${std!==null?std:"—"}</td>`).join("");
+    const actRow=sh.hours.map(h=>{
+      const v=actuals[k(curShift,date,op.name,h)];
+      return `<td class="${klass(v,std)}"><input type="number" min="0" max="999" value="${v!=null?v:""}" placeholder="—" onchange="setActual('${curShift}','${date}','${op.name}','${h}',this.value)"></td>`;
+    }).join("");
+    const cumRow=sh.hours.map((h,i)=>{
+      const v=actuals[k(curShift,date,op.name,h)];if(v!=null)cumA+=parseInt(v);
+      const expSoFar=std!==null?std*(i+1):0;
+      const diff=std!==null?cumA-expSoFar:null;
+      const cl=cumA===0?"kn":diff===null?"kn":diff>=0?"kg":Math.abs(diff)<=std*0.25?"ky":"kr";
+      return `<td class="${cl}" style="font-family:'DM Mono',monospace">${cumA||"—"}</td>`;
+    }).join("");
+    const dtM=downtimes.filter(d=>d.op===op.name&&d.date===date).reduce((a,b)=>a+b.mins,0);
+    const safeN=op.name.replace(/'/g,"\\'");
+    const fnOptions=Object.keys(FUNCTIONS).map(f=>`<option value="${f}"${f===fn?" selected":""}>${f} — ${FUNCTIONS[f].label}${FUNCTIONS[f].std!==null?" (std "+FUNCTIONS[f].std+")":""}</option>`).join("");
+    grid+=`<div class="op-card${op.ot?" ot":""}">
+      <div class="op-header">
+        <div class="op-info">
+          <div class="avatar ${shiftAv()}">${ini(op.name)}</div>
+          <div>
+            <div class="op-name">${op.name}${op.ot?` <span class="badge badge-ot" style="font-size:9px">OT</span>`:""}${isReassigned?` <span style="font-size:9px;padding:1px 6px;border-radius:10px;background:var(--purple-dim);color:var(--purple);font-weight:500">reassigned</span>`:""}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+              <select style="font-size:10px;padding:2px 6px;border:1px solid var(--border2);border-radius:6px;background:var(--bg3);color:var(--text2)" onchange="reassign('${curShift}','${safeN}',this.value)">${fnOptions}</select>
+              ${getAssignment(curShift,op.name)&&getAssignment(curShift,op.name).manual
+                ?`<span title="Manually locked — SAP won't auto-change this. Click to unlock." onclick="clearManualLock('${curShift}','${safeN}');render();" style="font-size:9px;cursor:pointer;color:var(--amber);background:var(--amber-dim);padding:1px 5px;border-radius:8px">🔒 locked</span>`
+                :`<span style="font-size:9px;color:var(--text3)">auto</span>`}
+              ${dtM>0?`<span style="font-size:10px;color:var(--red)">${dtM}m DT</span>`:""}
+            </div>
+          </div>
+        </div>
+        <button class="btn" onclick="openSolo('${safeN}')" style="font-size:11px;padding:3px 10px">1-on-1</button>
+      </div>
+      <div class="hour-wrap"><table class="hour-table">
+        <thead><tr><th style="text-align:left;width:54px;background:var(--bg3)">Row</th>${ths}</tr></thead>
+        <tbody>
+          <tr><td class="rl">Std</td>${sh.hours.map(h=>{
+            const bm=hourBreakMins(curShift,h);
+            const adjStd=adjustedStd(curShift,op,h);
+            return bm>0
+              ? `<td class="kn" style="font-family:'DM Mono',monospace;position:relative" title="Break: ${bm}min — adjusted std">${adjStd!==null?adjStd:"—"}<span style="position:absolute;top:1px;right:2px;font-size:8px;color:var(--amber)">☕</span></td>`
+              : `<td class="kn" style="font-family:'DM Mono',monospace">${std!==null?std:"—"}</td>`;
+          }).join("")}</tr>
+          <tr><td class="rl">Actual</td>${actRow}</tr>
+          <tr><td class="rl">Cum.</td>${cumRow}</tr>
+          <tr><td class="rl" style="color:var(--text3)">Notes</td>${sh.hours.map(h=>{
+            const note=getNote(curShift,date,op.name,h);
+            const bks=getBreaksInHour(curShift,h);
+            const bkLabel=bks.length?bks.map(b=>b.label).join(", "):"";
+            const hasNote=note||bkLabel;
+            return `<td style="padding:2px;border:1px solid var(--border);text-align:center">
+              <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+                ${bkLabel?`<span title="${bkLabel}" style="font-size:9px;color:var(--amber);cursor:default">☕</span>`:""}
+                <span title="${note||"Add note"}" onclick="openNoteModal('${curShift}','${date}','${safeN}','${h}')"
+                  style="font-size:10px;cursor:pointer;color:${note?"var(--blue)":"var(--text3)"};padding:1px 3px;border-radius:3px;${note?"background:var(--blue-dim)":""}">
+                  ${note?"✎ note":"+"}</span>
+              </div>
+            </td>`;
+          }).join("")}</tr>
+        </tbody>
+      </table></div>
+    </div>`;
+  });
+  grid+="</div>";
+  document.getElementById("view-live").innerHTML=meta+grid;
+}
+
+function renderDaily(){
+  const sh=SHIFTS[curShift];const date=getDate();const ops=ORG[curShift].ops;
+  const shiftArr=ops.map(op=>{let t=0;sh.hours.forEach(h=>{const v=actuals[k(curShift,date,op.name,h)];if(v!=null)t+=parseInt(v);});return t;});
+  const shiftAvg=Math.round(shiftArr.filter(x=>x>0).reduce((a,b)=>a+b,0)/(shiftArr.filter(x=>x>0).length||1));
+  const tbody=ops.map(op=>{
+    const fn=getOpFn(op);const std=getOpStd(op);
+    let total=0,hrs=0;sh.hours.forEach(h=>{const v=actuals[k(curShift,date,op.name,h)];if(v!=null&&!isNaN(v)){total+=parseInt(v);hrs++;}});
+    const pct=hrs>0&&std?Math.round(total/(std*hrs)*100):null;
+    const dtM=downtimes.filter(d=>d.op===op.name&&d.date===date).reduce((a,b)=>a+b.mins,0);
+    const vsAvg=total&&shiftAvg?total-shiftAvg:null;
+    const isReassigned=!!getAssignment(curShift,op.name);
+    const notesCount=sh.hours.filter(h=>getNote(curShift,date,op.name,h)).length;
+    return `<tr>
+      <td><strong>${op.name}</strong>${op.ot?` <span class="badge badge-ot" style="font-size:9px">OT</span>`:""}${isReassigned?` <span style="font-size:9px;padding:1px 5px;border-radius:8px;background:var(--purple-dim);color:var(--purple)">reassigned</span>`:""}<br><span style="font-size:10px;color:var(--text3)">${op.id} · ${fn}</span></td>
+      <td style="text-align:center;font-family:'DM Mono',monospace">${std!==null?std:"—"}</td>
+      <td style="text-align:center;font-family:'DM Mono',monospace">${hrs}</td>
+      <td style="text-align:center;font-weight:600;font-family:'DM Mono',monospace">${total||"—"}</td>
+      <td style="text-align:center;font-family:'DM Mono',monospace">${hrs>0?Math.round(total/hrs):"—"}</td>
+      <td style="text-align:center"><span class="badge ${badgeCls(pct)}">${pct!==null?pct+"%":"—"}</span></td>
+      <td style="text-align:center;color:${vsAvg===null?"var(--text3)":vsAvg>=0?"var(--green)":"var(--red)"}; font-family:'DM Mono',monospace">${vsAvg!==null?(vsAvg>=0?"+"+vsAvg:vsAvg):"—"}</td>
+      <td style="text-align:center;color:${dtM>0?"var(--red)":"var(--text3)"}; font-family:'DM Mono',monospace">${dtM>0?dtM+" min":"—"}</td>
+      <td style="text-align:center;font-size:11px;color:${pct===null?"var(--text3)":pct>=95?"var(--green)":pct>=75?"var(--amber)":"var(--red)"}">${hrs>0?(pct>=95?"✓ Met":pct>=75?"~ Close":"✗ Not met"):"—"}</td>
+      <td style="text-align:center">${notesCount>0?`<span style="font-size:10px;color:var(--blue);background:var(--blue-dim);padding:2px 7px;border-radius:10px">${notesCount} note${notesCount>1?"s":""}</span>`:"—"}</td>
+    </tr>`;
+  }).join("");
+  document.getElementById("view-daily").innerHTML=`<div class="data-wrap"><table>
+    <thead><tr><th style="text-align:left;width:170px">Operator</th><th>Std</th><th>Hrs</th><th>Total</th><th>Hr avg</th><th>Attain.</th><th>vs avg</th><th>Downtime</th><th>Status</th><th>Notes</th></tr></thead>
+    <tbody>${tbody}</tbody>
+  </table></div>`;
+}
+
+function renderWeekly(){
+  const ops=ORG[curShift].ops;
+  const d=new Date(getDate());const day=d.getDay();const mon=day===0?-6:1-day;
+  const days=[];
+  for(let i=0;i<(curShift==="wkd"?3:4);i++){const dd=new Date(d);dd.setDate(d.getDate()+(mon+i+(curShift==="wkd"?4:0)));days.push(dd.toISOString().split("T")[0]);}
+  const dayLabels=days.map(ds=>new Date(ds).toLocaleDateString("en-US",{weekday:"short",month:"numeric",day:"numeric"}));
+  const tbody=ops.map(op=>{
+    const fn=getOpFn(op);const std=getOpStd(op);
+    const isReassigned=!!getAssignment(curShift,op.name);
+    const dayTotals=days.map(ds=>{let t=0;SHIFTS[curShift].hours.forEach(h=>{const v=actuals[k(curShift,ds,op.name,h)];if(v!=null)t+=parseInt(v);});return t;});
+    const weekTotal=dayTotals.reduce((a,b)=>a+b,0);
+    const weekExp=std?std*SHIFTS[curShift].hours.length*days.length:0;
+    const pct=weekTotal>0&&weekExp>0?Math.round(weekTotal/weekExp*100):null;
+    return `<tr>
+      <td><strong>${op.name}</strong>${op.ot?` <span class="badge badge-ot" style="font-size:9px">OT</span>`:""}${isReassigned?` <span style="font-size:9px;padding:1px 5px;border-radius:8px;background:var(--purple-dim);color:var(--purple)">reassigned</span>`:""}<br><span style="font-size:10px;color:var(--text3)">${fn} · std ${std!==null?std:"—"}</span></td>
+      ${dayTotals.map(t=>`<td style="text-align:center;font-family:'DM Mono',monospace">${t||"—"}</td>`).join("")}
+      <td style="text-align:center;font-weight:600;font-family:'DM Mono',monospace">${weekTotal||"—"}</td>
+      <td style="text-align:center"><span class="badge ${badgeCls(pct)}">${pct!==null?pct+"%":"—"}</span></td>
+    </tr>`;
+  }).join("");
+  document.getElementById("view-weekly").innerHTML=`<div class="data-wrap"><table>
+    <thead><tr><th style="text-align:left;width:170px">Operator</th>${dayLabels.map(l=>`<th>${l}</th>`).join("")}<th>Week total</th><th>Attain.</th></tr></thead>
+    <tbody>${tbody}</tbody>
+  </table></div>`;
+}
+
+function renderDowntime(){
+  const date=getDate();const all=downtimes.filter(d=>d.date===date&&d.shift===curShift);
+  if(!all.length){document.getElementById("view-downtime").innerHTML=`<div style="color:var(--text3);padding:1.5rem;text-align:center">No downtime logged for this date and shift.<br>Open a 1-on-1 view on any operator card to log downtime.</div>`;return;}
+  const byReason={};all.forEach(d=>{byReason[d.reason]=(byReason[d.reason]||0)+d.mins;});
+  const summary=`<div class="metric-row" style="margin-bottom:1rem">${Object.entries(byReason).sort((a,b)=>b[1]-a[1]).map(([r,m])=>`<div class="metric"><div class="ml">${r}</div><div class="mv" style="color:var(--red)">${m} min</div></div>`).join("")}</div>`;
+  const byOp={};all.forEach(d=>{if(!byOp[d.op])byOp[d.op]=[];byOp[d.op].push(d);});
+  const tbody=Object.entries(byOp).map(([op,entries])=>`<tr>
+    <td style="font-weight:600">${op}</td>
+    <td>${entries.map(e=>`${e.hour}: ${e.reason}${e.note?" ("+e.note+")":""}`).join("<br>")}</td>
+    <td style="text-align:center;color:var(--red);font-weight:600;font-family:'DM Mono',monospace">${entries.reduce((a,b)=>a+b.mins,0)} min</td>
+  </tr>`).join("");
+  document.getElementById("view-downtime").innerHTML=summary+`<div class="data-wrap"><table>
+    <thead><tr><th style="text-align:left">Operator</th><th style="text-align:left">Events</th><th style="text-align:center">Total</th></tr></thead>
+    <tbody>${tbody}</tbody>
+  </table></div>`;
+}
+
+function renderSupport(){
+  const date=getDate();const sh=SHIFTS[curShift];
+  const leads=ORG[curShift].leads;const invs=ORG[curShift].inv;
+  let html=`<div class="section-lbl">Team leads — activity log</div>`;
+  leads.forEach(lead=>{
+    const safeId=lead.id||lead.name.replace(/\s/g,"_");
+    const myLogs=leadLogs.filter(l=>l.name===lead.name&&l.date===date&&l.shift===curShift);
+    const totalMins=myLogs.reduce((a,b)=>a+b.mins,0);
+    html+=`<div class="support-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div class="avatar av-lead" style="width:36px;height:36px;font-size:12px">${ini(lead.name)}</div>
+        <div><div style="font-size:14px;font-weight:600;color:var(--text)">${lead.name}${lead.ot?` <span class="badge badge-ot" style="font-size:9px">OT</span>`:""}</div>
+        <div style="font-size:11px;color:var(--text3)">${lead.id} · Team lead${totalMins>0?" · "+totalMins+" min logged":""}</div></div>
+      </div>
+      <div class="log-row">
+        <select id="ll-hour-${safeId}">${sh.hours.map(h=>`<option>${h}</option>`).join("")}</select>
+        <select id="ll-task-${safeId}">${LEAD_TASKS.map(t=>`<option>${t}</option>`).join("")}</select>
+        <input type="number" id="ll-mins-${safeId}" placeholder="mins" min="1" max="120" style="width:56px">
+        <input type="text" id="ll-note-${safeId}" placeholder="note (optional)" style="width:120px">
+        <button onclick="addLeadLog('${lead.name}','${safeId}')">Log</button>
+      </div>
+      <div style="margin-top:7px">${myLogs.length?myLogs.map(l=>`<div class="log-entry"><span>${l.hour} — ${l.task}${l.note?" ("+l.note+")":""}</span><span style="font-family:'DM Mono',monospace">${l.mins} min <span class="log-remove" onclick="removeLeadLog(${leadLogs.indexOf(l)})">remove</span></span></div>`).join(""):`<div style="color:var(--text3);font-size:11px">No activity logged yet</div>`}</div>
+    </div>`;
+  });
+
+  html+=`<div class="section-lbl" style="margin-top:16px">Inventory specialists — daily cycle count log</div>`;
+  invs.forEach(inv=>{
+    const safeId=inv.id||inv.name.replace(/\s/g,"_");
+    const myLogs=invLogs.filter(l=>l.name===inv.name&&l.date===date&&l.shift===curShift);
+    const totalCounts=myLogs.reduce((a,b)=>a+b.count,0);
+    const totalDisc=myLogs.reduce((a,b)=>a+b.disc,0);
+    html+=`<div class="support-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar av-inv" style="width:36px;height:36px;font-size:12px">${ini(inv.name)}</div>
+          <div><div style="font-size:14px;font-weight:600;color:var(--text)">${inv.name}</div>
+          <div style="font-size:11px;color:var(--text3)">${inv.id} · Inventory specialist${totalCounts>0?" · "+totalCounts+" locations":""}</div></div>
+        </div>
+        ${totalCounts>0?`<span class="badge ${totalDisc===0?"badge-g":totalDisc<=3?"badge-y":"badge-r"}">${totalDisc===0?"Clean":totalDisc+" discrepancies"}</span>`:""}
+      </div>
+      <div class="log-row">
+        <select id="il-area-${safeId}">${INV_AREAS.map(a=>`<option>${a}</option>`).join("")}</select>
+        <input type="text" id="il-locs-${safeId}" placeholder="Location range (e.g. A1–A20)" style="width:150px">
+        <input type="number" id="il-count-${safeId}" placeholder="# counted" min="0" style="width:72px">
+        <input type="number" id="il-disc-${safeId}" placeholder="# disc." min="0" style="width:65px">
+        <button onclick="addInvLog('${inv.name}','${safeId}')">Log</button>
+      </div>
+      <div style="margin-top:7px">${myLogs.length?`<table class="inv-table">
+        <thead><tr><th>Area</th><th>Locations</th><th>Counted</th><th>Discrepancies</th><th></th></tr></thead>
+        <tbody>${myLogs.map(l=>`<tr>
+          <td>${l.area}</td><td>${l.locs||"—"}</td>
+          <td style="text-align:center;font-family:'DM Mono',monospace">${l.count}</td>
+          <td style="text-align:center"><span class="${l.disc===0?"kg":l.disc<=3?"ky":"kr"}" style="padding:1px 8px;border-radius:20px;font-family:'DM Mono',monospace">${l.disc}</span></td>
+          <td style="text-align:center"><span class="log-remove" onclick="removeInvLog(${invLogs.indexOf(l)})">remove</span></td>
+        </tr>`).join("")}</tbody>
+      </table>`:`<div style="color:var(--text3);font-size:11px">No counts logged yet</div>`}</div>
+    </div>`;
+  });
+  document.getElementById("view-support").innerHTML=html;
+}
+
+function addLeadLog(name,id){
+  const h=document.getElementById("ll-hour-"+id).value;
+  const t=document.getElementById("ll-task-"+id).value;
+  const m=parseInt(document.getElementById("ll-mins-"+id).value)||0;
+  const n=(document.getElementById("ll-note-"+id).value||"").trim();
+  if(!m)return;
+  leadLogs.push({name,date:getDate(),shift:curShift,hour:h,task:t,mins:m,note:n});
+  renderSupport();
+}
+function removeLeadLog(idx){leadLogs.splice(idx,1);renderSupport();}
+function addInvLog(name,id){
+  const a=document.getElementById("il-area-"+id).value;
+  const locs=(document.getElementById("il-locs-"+id).value||"").trim();
+  const c=parseInt(document.getElementById("il-count-"+id).value)||0;
+  const dc=parseInt(document.getElementById("il-disc-"+id).value)||0;
+  if(!c&&!locs)return;
+  invLogs.push({name,date:getDate(),shift:curShift,area:a,locs,count:c,disc:dc});
+  renderSupport();
+}
+function removeInvLog(idx){invLogs.splice(idx,1);renderSupport();}
+
+function renderRoster(){
+  const org=ORG[curShift];
+  const sections=[
+    {key:"supervisors",label:"Supervisors",role:"sup",note:"Compliance & oversight — no KPI tracking"},
+    {key:"coordinators",label:"Ops coordinators",role:"coord",note:"Flow assurance & task assignment — no KPI tracking"},
+    {key:"leads",label:"Team leads",role:"lead",note:"Activity logged in Leads & Inventory tab"},
+    {key:"inv",label:"Inventory specialists",role:"inv",note:"Cycle counts logged in Leads & Inventory tab"},
+  ];
+  let html=`<div style="display:grid;gap:10px">`;
+  sections.forEach(s=>{
+    if(!org[s.key]||!org[s.key].length)return;
+    html+=`<div class="role-section">
+      <div style="display:flex;align-items:baseline;gap:10px">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${s.label}</div>
+        <div style="font-size:11px;color:var(--text3)">${s.note}</div>
+      </div>
+      <div class="role-grid">`;
+    org[s.key].forEach(p=>{
+      html+=`<div class="role-card">
+        <div class="avatar av-${s.role}" style="width:30px;height:30px;font-size:10px">${ini(p.name)}</div>
+        <div><div style="font-size:12px;font-weight:600;color:var(--text)">${p.name}${p.ot?` <span class="badge badge-ot" style="font-size:9px">OT</span>`:""}</div>
+        <div style="font-size:10px;color:var(--text3)">${p.id||"Badge on file"}</div></div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+  html+=`<div class="role-section">
+    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Operators <span style="font-size:11px;font-weight:400;color:var(--text3)">(${org.ops.length})</span></div>
+    <div class="role-grid">`;
+  org.ops.forEach(op=>{
+    html+=`<div class="role-card${op.ot?' ot':''}">
+      <div class="avatar ${shiftAv()}" style="width:30px;height:30px;font-size:10px">${ini(op.name)}</div>
+      <div><div style="font-size:12px;font-weight:600;color:var(--text)">${op.name}${op.ot?` <span class="badge badge-ot" style="font-size:9px">OT</span>`:""}</div>
+      <div style="font-size:10px;color:var(--text3)">${op.id} · ${op.fn} · std ${op.std}</div></div>
+    </div>`;
+  });
+  html+=`</div></div></div>`;
+  document.getElementById("view-roster").innerHTML=html;
+}
+
+function openTV(){
+  const sh=SHIFTS[curShift];const date=getDate();const ops=ORG[curShift].ops;
+  document.getElementById("tvTitle").textContent=sh.label+" — Live TAKT Board";
+  document.getElementById("tvMeta").textContent=date+" · "+new Date().toLocaleTimeString();
+  let tA=0,tE=0;
+  ops.forEach(op=>{sh.hours.forEach(h=>{const v=actuals[k(curShift,date,op.name,h)];if(v!=null){tA+=parseInt(v);tE+=op.std;}});});
+  const att=tE>0?Math.round(tA/tE*100):null;
+  const attCl=att===null?"tv-pct-n":att>=95?"tv-pct-g":att>=75?"tv-pct-y":"tv-pct-r";
+  document.getElementById("tvSummary").innerHTML=`
+    <div class="tv-sum-card"><div class="tv-sum-label">Operators</div><div class="tv-sum-val">${ops.length}</div></div>
+    <div class="tv-sum-card"><div class="tv-sum-label">Total actual</div><div class="tv-sum-val">${tA}</div></div>
+    <div class="tv-sum-card"><div class="tv-sum-label">Expected</div><div class="tv-sum-val">${tE}</div></div>
+    <div class="tv-sum-card"><div class="tv-sum-label">Shift attainment</div><div class="tv-sum-val"><span class="tv-pct ${attCl}">${att!==null?att+"%":"—"}</span></div></div>`;
+  document.getElementById("tvGrid").innerHTML=ops.map(op=>{
+    let total=0,hrs=0;sh.hours.forEach(h=>{const v=actuals[k(curShift,date,op.name,h)];if(v!=null){total+=parseInt(v);hrs++;}});
+    const pct=hrs>0?Math.round(total/(op.std*hrs)*100):null;
+    const cl=pct===null?"tv-g":pct>=95?"tv-g":pct>=75?"tv-y":"tv-r";
+    const pctCl=pct===null?"tv-pct-n":pct>=95?"tv-pct-g":pct>=75?"tv-pct-y":"tv-pct-r";
+    return `<div class="tv-card${op.ot?" ot-card":""}">
+      <div class="tv-name">${op.name}${op.ot?` <span style="font-size:9px;color:var(--amber)">OT</span>`:""}</div>
+      <div class="tv-sub">${op.fn} · std ${op.std}/hr</div>
+      <div class="tv-big ${cl}">${total||"—"}</div>
+      <div style="font-size:11px;color:#333;margin:2px 0 6px">/ ${op.std*hrs||"—"} expected</div>
+      <span class="tv-pct ${pctCl}">${pct!==null?pct+"%":"No data"}</span>
+    </div>`;
+  }).join("");
+  document.getElementById("tvOverlay").className="show";
+}
+function closeTV(){document.getElementById("tvOverlay").className="";}
+
+let _noteCtx={shift:"",date:"",name:"",hour:""};
+function openNoteModal(shift,date,name,hour){
+  _noteCtx={shift,date,name,hour};
+  const existing=getNote(shift,date,name,hour);
+  const bks=getBreaksInHour(shift,hour);
+  const breakInfo=document.getElementById("noteBreakInfo");
+  if(bks.length){
+    breakInfo.textContent="☕ "+bks.map(b=>b.label).join(" + ")+" falls in this hour — std is adjusted automatically";
+    breakInfo.style.display="block";
+  } else {
+    breakInfo.style.display="none";
+  }
+  document.getElementById("noteModalTitle").textContent=name+" — "+hour;
+  document.getElementById("noteText").value=existing;
+  // Build quick-reason chips
+  const chips=document.getElementById("noteChips");
+  chips.innerHTML=NOTE_REASONS.map(r=>`<span onclick="appendNoteReason('${r.replace(/'/g,"\\'")}')
+    " style="font-size:11px;padding:3px 10px;border-radius:20px;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text2)">${r}</span>`).join("");
+  document.getElementById("noteModal").style.display="flex";
+}
+function appendNoteReason(reason){
+  const ta=document.getElementById("noteText");
+  ta.value=(ta.value?ta.value+", ":"")+reason;
+  ta.focus();
+}
+function saveNote(){
+  const val=document.getElementById("noteText").value.trim();
+  setNote(_noteCtx.shift,_noteCtx.date,_noteCtx.name,_noteCtx.hour,val);
+  closeNoteModal();
+  render();
+}
+function clearNote(){
+  document.getElementById("noteText").value="";
+  setNote(_noteCtx.shift,_noteCtx.date,_noteCtx.name,_noteCtx.hour,"");
+  closeNoteModal();
+  render();
+}
+function closeNoteModal(){
+  document.getElementById("noteModal").style.display="none";
+}
+
+function openPasteModal(){
+  document.getElementById("pasteModal").style.display="flex";
+  document.getElementById("pasteArea").value="";
+  document.getElementById("pasteStatus").style.display="none";
+  setTimeout(()=>document.getElementById("pasteArea").focus(),100);
+}
+function closePasteModal(){
+  document.getElementById("pasteModal").style.display="none";
+}
+function processPaste(){
+  const raw=document.getElementById("pasteArea").value.trim();
+  if(!raw){
+    showPasteStatus("Nothing pasted yet — copy from Excel first then paste here","error");
+    return;
+  }
+  // Excel pastes use tabs between columns and newlines between rows
+  const lines=raw.split("\n").map(l=>l.trim()).filter(l=>l);
+  const rows=lines.map(l=>l.split("\t").map(c=>c.trim()));
+  // Fallback: if no tabs found, try comma separation
+  const isTabDelimited=rows[0]&&rows[0].length>1;
+  const finalRows=isTabDelimited?rows:lines.map(l=>l.split(",").map(c=>c.replace(/"/g,"").trim()));
+  processRows(finalRows,true);
+}
+function showPasteStatus(msg,type){
+  const el=document.getElementById("pasteStatus");
+  el.textContent=msg;
+  el.style.color=type==="ok"?"var(--green)":type==="error"?"var(--red)":"var(--amber)";
+  el.style.display="block";
+}
+
+function processRows(rows, fromPaste=false){
+  const hour=document.getElementById("csvHourSel").value;
+  const date=getDate();
+  if(!rows||rows.length<2){showUploadStatus("No data rows found in file",false);return;}
+
+  // Find header row
+  let headerRowIdx=0;
+  for(let i=0;i<Math.min(rows.length,5);i++){
+    if(rows[i].some(c=>String(c||"").toLowerCase().includes("operator"))){headerRowIdx=i;break;}
+  }
+  const headers=rows[headerRowIdx].map(h=>String(h||"").trim().toLowerCase());
+  const opIdx=headers.findIndex(h=>h==="operator"||h.includes("operator"));
+  if(opIdx<0){
+    const msg="No Operator column found — make sure your SAP export includes an Operator column";
+    fromPaste?showPasteStatus(msg,"error"):showUploadStatus(msg,false);
+    return;
+  }
+
+  // Build column index map: fnCode → column index
+  const colMap={};
+  headers.forEach((h,i)=>{
+    Object.entries(SAP_COL_MAP).forEach(([sapKey,fnCode])=>{
+      if(h.includes(sapKey)&&colMap[fnCode]===undefined)colMap[fnCode]=i;
+    });
+  });
+
+  const allOps=[...ORG["1st"].ops,...ORG["2nd"].ops,...ORG["wkd"].ops];
+  let count=0, autoAssigned=0;
+
+  rows.slice(headerRowIdx+1).forEach(row=>{
+    const rawName=String(row[opIdx]||"").toUpperCase().trim();
+    if(!rawName||rawName.includes("GRAND TOTAL")||rawName.includes("TOTAL")||rawName==="")return;
+
+    // Match operator name to roster (exact SAP name first, then first-name fuzzy)
+    const matchOp=
+      allOps.find(o=>o.sap===rawName)||
+      allOps.find(o=>rawName.startsWith(o.sap?o.sap.split(" ")[0]:o.name.split(" ")[0].toUpperCase()));
+    if(!matchOp)return;
+    const rosterOp=ORG[curShift].ops.find(o=>o.name===matchOp.name);
+    if(!rosterOp)return;
+
+    // ── AUTO-DETECT FUNCTION ──────────────────────────────────────────────
+    // Look at which columns have non-zero values for this operator
+    // and assign the function with the highest priority non-zero column
+    let detectedFn=null;
+    let detectedQty=0;
+
+    for(const fn of FN_DETECT_PRIORITY){
+      const idx=colMap[fn];
+      if(idx===undefined)continue;
+      const val=parseInt(String(row[idx]||"").replace(/[^0-9]/g,""));
+      if(!isNaN(val)&&val>0){
+        detectedFn=fn;
+        detectedQty=val;
+        break;
+      }
+    }
+
+    // If no specific column had activity, fall back to Total Trips
+    if(detectedFn===null){
+      const totalIdx=colMap["TOTAL"];
+      if(totalIdx!==undefined){
+        const val=parseInt(String(row[totalIdx]||"").replace(/[^0-9]/g,""));
+        if(!isNaN(val)&&val>0){
+          // Keep their existing assignment or default
+          detectedFn=getOpFn(rosterOp);
+          detectedQty=val;
+        }
+      }
+    }
+
+    if(detectedFn===null)return;
+
+    // Only auto-reassign if detected function differs from current assignment
+    // AND user hasn't manually locked them (manual overrides are stored same way
+    // but we track whether it was auto or manual)
+    const currentAssign=getAssignment(curShift,rosterOp.name);
+    const isManualLock=currentAssign&&currentAssign.manual===true;
+    if(!isManualLock&&detectedFn!==getOpFn(rosterOp)){
+      const std=FUNCTIONS[detectedFn]?FUNCTIONS[detectedFn].std:rosterOp.std;
+      assignments[curShift+"||"+rosterOp.name]={fn:detectedFn,std,manual:false};
+      autoAssigned++;
+    }
+
+    // ── DELTA CALCULATION ────────────────────────────────────────────────
+    // SAP reports are CUMULATIVE (total since shift start).
+    // To get just THIS hour's production: new cumulative - previous cumulative.
+    const cumKey=sapCumKey(curShift,date,rosterOp.name);
+    const prevCum=sapCumulative[cumKey]||0;
+    const hourlyActual=Math.max(0,detectedQty-prevCum);
+    // Store new cumulative for next hour's delta
+    sapCumulative[cumKey]=detectedQty;
+    // Store the hourly actual (the delta)
+    actuals[k(curShift,date,rosterOp.name,hour)]=hourlyActual;
+    count++;
+  });
+
+  const parts=[];
+  if(count>0)parts.push("✓ "+count+" operators imported for "+hour+" (hourly delta calculated)");
+  if(autoAssigned>0)parts.push(autoAssigned+" auto-reassigned");
+  const msg=parts.length?parts.join(" · "):"No matching operators found — check names match roster";
+  const ok=count>0;
+  if(fromPaste){
+    showPasteStatus(msg,ok?"ok":"error");
+    if(ok)setTimeout(closePasteModal,2000);
+  } else {
+    showUploadStatus(msg,ok);
+  }
+  if(ok){scheduleSave();render();}
+}
+
+function handleUpload(e){
+  const file=e.target.files[0];if(!file)return;
+  const name=file.name.toLowerCase();
+  if(name.endsWith(".csv")){
+    // CSV path
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      const lines=ev.target.result.split("\n").map(l=>l.trim()).filter(l=>l);
+      const rows=lines.map(l=>l.split(",").map(c=>c.replace(/"/g,"").trim()));
+      processRows(rows);
+    };
+    reader.readAsText(file);
+  } else {
+    // Excel path — uses SheetJS
+    if(typeof XLSX==="undefined"){
+      showUploadStatus("Excel reader not loaded — check your internet connection and try again",false);
+      return;
+    }
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        const wb=XLSX.read(ev.target.result,{type:"array"});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+        processRows(rows);
+      }catch(err){
+        showUploadStatus("Could not read Excel file — try saving as CSV from Excel instead",false);
+        console.error(err);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  // Reset input so same file can be re-uploaded
+  e.target.value="";
+}
+
+// Keep old name as alias for any inline references
+const handleCSV=handleUpload;
+
+function showUploadStatus(msg,ok){
+  const el=document.getElementById("uploadStatus");
+  el.textContent=msg;el.style.background=ok?"var(--green-dim)":"var(--red-dim)";el.style.color=ok?"var(--green)":"var(--red)";
+  el.style.display="inline-block";setTimeout(()=>{el.style.display="none";},5000);
+}
+
+// ── AUTOSAVE ──────────────────────────────────────────────
+const SAVE_KEY="takt_board_v1";
+let saveTimer=null;
+
+function saveState(){
+  try{
+    const payload={
+      actuals,
+      downtimes,
+      assignments,
+      invLogs,
+      leadLogs,
+      hourNotes,
+      sapCumulative,
+      savedAt:new Date().toISOString()
+    };
+    localStorage.setItem(SAVE_KEY,JSON.stringify(payload));
+    showSaveIndicator();
+  }catch(e){console.warn("Autosave failed:",e);}
+}
+
+function loadState(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw)return;
+    const payload=JSON.parse(raw);
+    if(payload.actuals)actuals=payload.actuals;
+    if(payload.downtimes)downtimes=payload.downtimes;
+    if(payload.assignments)assignments=payload.assignments;
+    if(payload.invLogs)invLogs=payload.invLogs;
+    if(payload.leadLogs)leadLogs=payload.leadLogs;
+    if(payload.hourNotes)hourNotes=payload.hourNotes;
+    if(payload.sapCumulative)sapCumulative=payload.sapCumulative;
+    if(payload.savedAt){
+      const d=new Date(payload.savedAt);
+      document.getElementById("lastSaved").textContent="Last saved: "+d.toLocaleTimeString()+", "+d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+    }
+  }catch(e){console.warn("Load failed:",e);}
+}
+
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(saveState,800);
+}
+
+function showSaveIndicator(){
+  const el=document.getElementById("saveIndicator");
+  el.textContent="✓ Saved";el.style.opacity="1";
+  const t=new Date();
+  document.getElementById("lastSaved").textContent="Last saved: "+t.toLocaleTimeString();
+  setTimeout(()=>{el.style.opacity="0";},2000);
+}
+
+function clearAllData(){
+  if(!confirm("Clear ALL data for all shifts and dates? This cannot be undone."))return;
+  actuals={};downtimes=[];assignments={};invLogs=[];leadLogs=[];hourNotes={};sapCumulative={};
+  localStorage.removeItem(SAVE_KEY);
+  document.getElementById("lastSaved").textContent="";
+  render();
+}
+// ─────────────────────────────────────────────────────────
+
+function render(){
+  if(curTab==="live")renderLive();
+  else if(curTab==="daily")renderDaily();
+  else if(curTab==="weekly")renderWeekly();
+  else if(curTab==="downtime")renderDowntime();
+  else if(curTab==="support")renderSupport();
+  else renderRoster();
+  if(soloOp)renderSolo();
+}
+
+// Patch all state-mutating functions to trigger autosave
+const _setActual=setActual;
+setActual=function(shift,date,name,hour,val){_setActual(shift,date,name,hour,val);scheduleSave();};
+const _reassign=reassign;
+reassign=function(shift,name,fn){_reassign(shift,name,fn);scheduleSave();};
+const _addDT=addDT;
+addDT=function(n){_addDT(n);scheduleSave();};
+const _removeDT=removeDT;
+removeDT=function(i){_removeDT(i);scheduleSave();};
+const _addLeadLog=addLeadLog;
+addLeadLog=function(n,i){_addLeadLog(n,i);scheduleSave();};
+const _removeLeadLog=removeLeadLog;
+removeLeadLog=function(i){_removeLeadLog(i);scheduleSave();};
+const _addInvLog=addInvLog;
+addInvLog=function(n,i){_addInvLog(n,i);scheduleSave();};
+const _removeInvLog=removeInvLog;
+removeInvLog=function(i){_removeInvLog(i);scheduleSave();};
+
+initDate();
+loadState();
+populateHourSel();
+render();
+setInterval(()=>{if(document.getElementById("tvOverlay").className==="show")openTV();},60000);
+// Autosave every 2 minutes as a safety net
+setInterval(saveState,120000);
+</script>
+</body>
+</html>
